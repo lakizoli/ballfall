@@ -1,30 +1,18 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-using Android.App;
-using Android.Content;
-using Android.OS;
-using Android.Runtime;
-using Android.Views;
-using Android.Widget;
 
 namespace ballfall {
-    class Vector2D {
+    struct Vector2D {
         #region Data
 
         public float X { get; set; }
 
         public float Y { get; set; }
 
+        public static Vector2D Zero = new Vector2D (0, 0);
+
         #endregion
 
         #region Construction
-
-        public Vector2D () {
-        }
-
         public Vector2D (float x, float y) {
             X = x;
             Y = y;

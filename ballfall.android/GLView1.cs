@@ -11,11 +11,17 @@ using System.Collections.Generic;
 
 namespace ballfall.android {
     class GLView1 : AndroidGameView {
-        private Game _game = new Game ();
-        private Size _viewSize = null;
-        private HashSet<int> _pointerIDs = new HashSet<int> ();
+        private Game _game;
+        private Size _viewSize;
+        private HashSet<int> _pointerIDs;
 
         public GLView1 (Context context) : base (context) {
+            _game = new Game (
+                new AndroidUtil (),
+                new AndroidContentManager (context)
+            );
+
+            _pointerIDs = new HashSet<int> ();
         }
 
         // This gets called when the drawing surface is ready
@@ -115,11 +121,12 @@ namespace ballfall.android {
                     _game.TouchUp (id, e.GetX (index), e.GetY (index));
                 }
             } else if (e.Action == MotionEventActions.Move) {
-                int id = e.GetPointerId (e.ActionIndex);
-                if (_pointerIDs.Contains (id)) {
-                    int index = e.FindPointerIndex (id);
-                    //Log.Debug ("OnTouchEvent", "Move -> idx: " + index + ", id: " + id + ", x: " + e.GetX (index) + ", y: " + e.GetY (index));
-                    _game.TouchMove (id, e.GetX (index), e.GetY (index));
+                for (int i = 0; i < e.PointerCount; ++i) {
+                    int id = e.GetPointerId (i);
+                    if (_pointerIDs.Contains (id)) {
+                        //Log.Debug ("OnTouchEvent", "Move -> idx: " + index + ", id: " + id + ", x: " + e.GetX (index) + ", y: " + e.GetY (index));
+                        _game.TouchMove (id, e.GetX (i), e.GetY (i));
+                    }
                 }
             }
 
