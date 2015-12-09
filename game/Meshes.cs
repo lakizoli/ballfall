@@ -2,7 +2,7 @@ using OpenTK.Graphics.ES11;
 using System;
 using System.Runtime.InteropServices;
 
-namespace ballfall {
+namespace game {
     abstract class Mesh2D {
         #region Transformation
         public Vector2D Pos { get; set; }

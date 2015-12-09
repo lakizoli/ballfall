@@ -8,6 +8,7 @@ using Android.Views;
 using Android.Content;
 using Android.Util;
 using System.Collections.Generic;
+using game;
 
 namespace ballfall.android {
     class GLView1 : AndroidGameView {

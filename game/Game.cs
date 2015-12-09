@@ -15,7 +15,7 @@ using System.Collections.Generic;
 //5.) krakout, traz (C64)
 //6.) hunch back (C64)
 
-namespace ballfall {
+namespace game {
     #region OS specific interfaces
     public interface IContentManager {
         IDisposable LoadImage (string asset);

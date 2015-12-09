@@ -77,6 +77,10 @@
       <Project>{1c5c6ad2-e7b7-4ca2-8d16-9b8ad7a1376e}</Project>
       <Name>ballfall</Name>
     </ProjectReference>
+    <ProjectReference Include="..\game\game.csproj">
+      <Project>{c09a9173-1959-41ab-891f-96a9dde18d07}</Project>
+      <Name>game</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <AndroidAsset Include="Assets\ball_blue.png" />

@@ -1,6 +1,6 @@
 using System;
 
-namespace ballfall {
+namespace game {
     struct Vector2D {
         #region Data
 
