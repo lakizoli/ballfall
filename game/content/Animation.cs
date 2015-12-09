@@ -78,16 +78,16 @@ namespace game.content {
     }
 
     public class PulseAnimation : Animation {
-        private float _pulseFactor;
+        private float _topScale;
         private float _timeFrame;
 
-        private float _scaleFactor;
-        public float ScaleFactor { get { return _scaleFactor; } }
+        private float _scale;
+        public float Scale { get { return _scale; } }
 
-        public PulseAnimation (float pulseFactor, float timeFrame) {
-            _pulseFactor = pulseFactor;
+        public PulseAnimation (float topScale, float timeFrame) {
+            _topScale = topScale;
             _timeFrame = timeFrame;
-            _scaleFactor = 1.0f;
+            _scale = 1.0f;
         }
 
         protected override void OnUpdate (float elapsedTime) {
@@ -97,9 +97,9 @@ namespace game.content {
             float halfTime = _timeFrame / 2.0f;
 
             if (offsetInFrame >= _timeFrame / 2.0f) //go down with scale
-                _scaleFactor = (_pulseFactor - 1.0f) * (2.0f * halfTime - offsetInFrame) / halfTime + 1.0f;
+                _scale = (_topScale - 1.0f) * (2.0f * halfTime - offsetInFrame) / halfTime + 1.0f;
             else //go up with scale
-                _scaleFactor = (_pulseFactor - 1.0f) * offsetInFrame / halfTime + 1.0f;
+                _scale = (_topScale - 1.0f) * offsetInFrame / halfTime + 1.0f;
         }
     }
 }

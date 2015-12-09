@@ -9,6 +9,7 @@ using game.content;
 //4.) varfal védelem
 //5.) krakout, traz (C64)
 //6.) hunch back (C64)
+//7.) pörgõ leveleken ugráló béka
 
 namespace game.management {
     #region OS specific interfaces
@@ -60,6 +61,10 @@ namespace game.management {
                 _currentScene = value;
             }
         }
+
+        public float ScreenWidth { get { return ToLocal (_width, 0).X; } }
+
+        public float ScreenHeight { get { return ToLocal (0, _height).Y; } }
         #endregion
 
         #region Construction

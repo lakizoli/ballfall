@@ -35,7 +35,7 @@ namespace ballfall.content {
         protected override void OnUpdate (float elapsedTime) {
             base.OnUpdate (elapsedTime);
             _pulse.Update (elapsedTime);
-            _ball.Scale = _ballOriginalScale * _pulse.ScaleFactor;
+            _ball.Scale = _ballOriginalScale * _pulse.Scale;
         }
 
         protected override void OnRender () {
