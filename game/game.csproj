@@ -43,7 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="content\Meshes.cs" />
+    <Compile Include="content\Mesh2D.cs" />
     <Compile Include="content\Vector2D.cs" />
     <Compile Include="management\Game.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

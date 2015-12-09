@@ -1,7 +1,7 @@
 using System;
 
-namespace game {
-    struct Vector2D {
+namespace game.content {
+    public struct Vector2D {
         #region Data
 
         public float X { get; set; }

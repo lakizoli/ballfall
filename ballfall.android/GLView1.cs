@@ -8,16 +8,16 @@ using Android.Views;
 using Android.Content;
 using Android.Util;
 using System.Collections.Generic;
-using game;
+using ballfall.management;
 
 namespace ballfall.android {
     class GLView1 : AndroidGameView {
-        private Game _game;
+        private BallFallGame _game;
         private Size _viewSize;
         private HashSet<int> _pointerIDs;
 
         public GLView1 (Context context) : base (context) {
-            _game = new Game (
+            _game = new BallFallGame (
                 new AndroidUtil (),
                 new AndroidContentManager (context)
             );

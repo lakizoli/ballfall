@@ -11,7 +11,7 @@ using Android.Views;
 using Android.Widget;
 using Android.Util;
 
-using game;
+using game.management;
 
 namespace ballfall.android {
     class AndroidUtil : IUtil {

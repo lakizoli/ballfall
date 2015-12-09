@@ -9,7 +9,7 @@ using Android.OS;
 using Android.Runtime;
 using Android.Views;
 using Android.Widget;
-using game;
+using game.management;
 using Android.Content.Res;
 using Android.Graphics;
 
