@@ -34,12 +34,20 @@ namespace game.content {
             return new Vector2D { X = v1.X - v2.X, Y = v1.Y - v2.Y };
         }
 
+        public static Vector2D operator *(Vector2D vec, Vector2D multiplier) {
+            return new Vector2D { X = vec.X * multiplier.X, Y = vec.Y * multiplier.Y };
+        }
+
         public static Vector2D operator *(Vector2D vec, float multiplier) {
             return new Vector2D { X = vec.X * multiplier, Y = vec.Y * multiplier };
         }
 
         public static Vector2D operator *(float multiplier, Vector2D vec) {
             return new Vector2D { X = vec.X * multiplier, Y = vec.Y * multiplier };
+        }
+
+        public static Vector2D operator /(Vector2D vec, Vector2D divider) {
+            return new Vector2D { X = vec.X / divider.X, Y = vec.Y / divider.Y };
         }
 
         public static Vector2D operator /(Vector2D vec, float divider) {
@@ -71,15 +79,15 @@ namespace game.content {
         }
 
         public static bool operator <(Vector2D v1, Vector2D v2) {
-            return v1.X < v2.X || v1.Y < v2.Y;
+            return v1.X < v2.X && v1.Y < v2.Y;
         }
 
         public static bool operator >=(Vector2D v1, Vector2D v2) {
-            return !(v1 < v2);
+            return v1 == v2 || (v1.X > v2.X && v1.Y > v2.Y);
         }
 
         public static bool operator <=(Vector2D v1, Vector2D v2) {
-            return !(v1 > v2);
+            return v1 == v2 || (v1.X < v2.X && v1.Y < v2.Y);
         }
 
         public static bool operator ==(Vector2D v1, Vector2D v2) {

@@ -102,4 +102,29 @@ namespace game.content {
                 _scale = (_topScale - 1.0f) * offsetInFrame / halfTime + 1.0f;
         }
     }
+
+    public class LinearAnimation : Animation {
+        private float _startValue;
+        private float _endValue;
+        private float _timeFrame;
+
+        private float _value;
+        public float Value { get { return _value; } }
+
+        public LinearAnimation (float startValue, float endValue, float timeFrame) {
+            _startValue = startValue;
+            _endValue = endValue;
+            _timeFrame = timeFrame;
+            _value = _startValue;
+        }
+
+        protected override void OnUpdate (float elapsedTime) {
+            base.OnUpdate (elapsedTime);
+
+            if (_timeOffset >= _timeFrame) //Ended
+                _value = _endValue;
+            else //interpolate
+                _value = _startValue + _timeOffset / _timeFrame * (_endValue - _startValue);
+        }
+    }
 }

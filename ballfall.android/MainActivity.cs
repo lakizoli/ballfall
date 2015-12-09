@@ -11,6 +11,7 @@ namespace ballfall.android {
     [Activity (Label = "ballfall.android",
         MainLauncher = true,
         Icon = "@drawable/icon",
+        Theme = "@android:style/Theme.DeviceDefault.NoActionBar",
         ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.KeyboardHidden
 #if __ANDROID_11__
 		,HardwareAccelerated=false

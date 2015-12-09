@@ -5,7 +5,7 @@ using System.Text;
 
 namespace game.content {
     public class RigidBody2D {
-        public const float PhysicalScale = 40.0f; //Physical scale [pixel / meter]
+        public const float PhysicalScale = 30.0f; //Physical scale [pixel / meter]
         public const float Gravity = 9.81f; // [m/sec2]
 
         public Vector2D LastPos { get; set; }
@@ -31,6 +31,9 @@ namespace game.content {
 
             //Check collision (and iterate new position, when needed)
             //...
+
+            //Clear all forces
+            Force = Vector2D.Zero;
         }
     }
 }

@@ -86,6 +86,9 @@ namespace game.management {
 
         public void Resize (int oldWidth, int oldHeight, int newWidth, int newHeight) {
             InitProjection (newWidth, newHeight);
+
+            if (_currentScene != null)
+                _currentScene.Resize (oldWidth, oldHeight, newWidth, newHeight);
         }
 
         /// <summary>

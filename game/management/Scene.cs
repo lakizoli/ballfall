@@ -9,6 +9,8 @@ namespace game.management {
 
         public abstract void Shutdown ();
 
+        public abstract void Resize (int oldWidth, int oldHeight, int newWidth, int newHeight);
+
         public abstract void Update (float elapsedTime);
 
         public abstract void Render ();

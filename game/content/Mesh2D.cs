@@ -13,6 +13,12 @@ namespace game.content {
         public Vector2D Scale { get; set; }
         #endregion
 
+        #region Data
+        public Rect2D BoundingBox { get; set; }
+
+        public Rect2D TransformedBoundingBox { get { return BoundingBox.Scale (Scale).Offset (Pos); } }
+        #endregion
+
         #region Init methods
         public virtual void Init () {
             Scale = new Vector2D (1, 1);
@@ -59,6 +65,22 @@ namespace game.content {
             return texID;
         }
 
+        protected Rect2D CalculateBoundingBox (float[] vertices) {
+            Vector2D min = new Vector2D (float.MaxValue, float.MaxValue);
+            Vector2D max = new Vector2D (float.MinValue, float.MinValue);
+
+            for (int i = 0; i < vertices.Length; i += 2) {
+                Vector2D pt = new Vector2D (vertices[i], vertices[i+1]);
+                if (pt < min)
+                    min = pt;
+
+                if (pt > max)
+                    max = pt;
+            }
+
+            return new Rect2D (min, max);
+        }
+
         protected int NewVBO<T> (T[] data) where T : struct  {
             int vboID = 0;
             GL.GenBuffers (1, ref vboID);
@@ -70,13 +92,19 @@ namespace game.content {
         }
 
         protected int[] NewTexturedVBO (int texID, float[] vertices = null, float[] texCoords = null) {
-            return new int[] {
-                NewVBO<float> (vertices == null ? new float[] {
+            if (vertices == null) {
+                vertices = new float[] {
                     -1.0f, -1.0f,
                     1.0f, -1.0f,
                     -1.0f, 1.0f,
                     1.0f, 1.0f
-                } : vertices),
+                };
+            }
+
+            BoundingBox = CalculateBoundingBox (vertices);
+
+            return new int[] {
+                NewVBO<float> (vertices),
                 NewVBO<float> (texCoords == null ? new float[] {
                     0.0f, 0.0f,
                     1.0f, 0.0f,
@@ -87,6 +115,9 @@ namespace game.content {
         }
 
         protected void RenderTexturedVBO (int texID, int vertCoordID, int texCoordID, All mode = All.TriangleStrip, int vertexCount = 4) {
+            GL.Enable (All.Blend);
+            GL.BlendFunc (All.SrcAlpha, All.OneMinusSrcAlpha);
+
             GL.Enable (All.Texture2D);
             GL.BindTexture (All.Texture2D, texID);
 
