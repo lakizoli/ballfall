@@ -2,9 +2,6 @@ using System;
 using OpenTK.Graphics.ES11;
 using game.content;
 
-//TODO: létre kell hozni a QuickTimeEvent osztályt, ami egy elõre leprogramozott animációt hajt végre a Scene-en (mint pl.: menüpont villogása, ha megnyomták). Jellemzõje, hogy ilyenkor tiltott az input...
-//TODO: létre kell hozni az Animation osztályt, amiben egy animáció lehet leírva. pl.: mesh animáció, textúra animáció, szín animáció
-
 //Játék öletek:
 //1.) ballfall: leesõ labdák válogatása különbözõ színû csövekbe
 //2.) dekázo játék: egy labdát kell dekázni mindenféle szélben, esõben, ill. különbözõ skill-ek gesture függõen stb...
@@ -30,21 +27,18 @@ namespace game.management {
     public interface IUtil {
         void Log (string log);
     }
-
-    public interface ISystem {
-        IUtil Util { get; }
-
-        IContentManager ContentManager { get; }
-    } 
     #endregion
 
-    public abstract class Game : ISystem {
+    public abstract class Game {
         #region Management data
-        IUtil _util;
-        public IUtil Util { get { return _util; } }
+        static Game _game;
+        public static Game Instance { get { return _game; } }
 
-        IContentManager _contentManager;
-        public IContentManager ContentManager { get { return _contentManager; } }
+        static IUtil _util;
+        public static IUtil Util { get { return _util; } }
+
+        static IContentManager _contentManager;
+        public static IContentManager ContentManager { get { return _contentManager; } }
         #endregion
 
         #region Data
@@ -70,6 +64,7 @@ namespace game.management {
 
         #region Construction
         public Game (IUtil util, IContentManager contentManager) {
+            _game = this;
             _util = util;
             _contentManager = contentManager;
         }
@@ -92,7 +87,7 @@ namespace game.management {
         /// The update step of the game.
         /// </summary>
         /// <param name="elapsedTime">The elapsed time from the last update in seconds.</param>
-        public virtual void Update (double elapsedTime) {
+        public virtual void Update (float elapsedTime) {
             if (_currentScene != null)
                 _currentScene.Update (elapsedTime);
         }

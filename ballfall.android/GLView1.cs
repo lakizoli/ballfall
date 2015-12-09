@@ -92,7 +92,7 @@ namespace ballfall.android {
         protected override void OnUpdateFrame (FrameEventArgs e) {
             base.OnUpdateFrame (e);
 
-            _game.Update (e.Time);
+            _game.Update ((float)e.Time);
         }
 
         // This gets called on each frame render

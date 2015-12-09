@@ -18,34 +18,50 @@ namespace ballfall.management {
 
         #region Dynamic data
         Dictionary<int, Vector2D> _touchPositions = new Dictionary<int, Vector2D> ();
+        QTEPulseBall _pulseRed;
         #endregion
 
-        public FallScene (Game game) : base (game) {
+        public FallScene () {
             _ballRed = new Ball (Ball.Color.Red);
             _ballGreen = new Ball (Ball.Color.Green);
             _ballBlue = new Ball (Ball.Color.Blue);
             _ballMagic = new Ball (Ball.Color.Magic);
+
+            _pulseRed = new QTEPulseBall (_ballRed);
         }
 
         public override void Init (int width, int height) {
-            _ballRed.Init (_game);
-            _ballGreen.Init (_game);
-            _ballBlue.Init (_game);
-            _ballMagic.Init (_game);
+            _ballRed.Init ();
+            _ballGreen.Init ();
+            _ballBlue.Init ();
+            _ballMagic.Init ();
 
             _ballRed.Scale = new Vector2D (0.1f, 0.1f);
             _ballGreen.Scale = new Vector2D (0.1f, 0.1f);
             _ballBlue.Scale = new Vector2D (0.1f, 0.1f);
             _ballMagic.Scale = new Vector2D (0.1f, 0.1f);
-        }
-        public override void Shutdown () {
-            _ballMagic.Shutdown (_game);
-            _ballBlue.Shutdown (_game);
-            _ballGreen.Shutdown (_game);
-            _ballRed.Shutdown (_game);
+
+            _pulseRed.Init ();
         }
 
-        public override void Update (double elapsedTime) {
+        public override void Shutdown () {
+            _ballMagic.Shutdown ();
+            _ballBlue.Shutdown ();
+            _ballGreen.Shutdown ();
+            _ballRed.Shutdown ();
+        }
+
+        public override void Update (float elapsedTime) {
+            if (_touchPositions.ContainsKey (0)) {
+                if (!_pulseRed.IsStarted ())
+                    _pulseRed.Start ();
+
+                _pulseRed.Update (elapsedTime);
+            } else {
+                if (_pulseRed.IsStarted ())
+                    _pulseRed.Stop ();
+            }
+
             //...
         }
 
@@ -58,7 +74,10 @@ namespace ballfall.management {
 
             if (_touchPositions.ContainsKey (0)) {
                 _ballRed.Pos = _touchPositions[0];
-                _ballRed.Render ();
+                if (_pulseRed.IsStarted ())
+                    _pulseRed.Render ();
+                else
+                    _ballRed.Render ();
             }
 
             if (_touchPositions.ContainsKey (1)) {
@@ -81,7 +100,7 @@ namespace ballfall.management {
             base.TouchDown (fingerID, x, y);
 
             if (!_touchPositions.ContainsKey (fingerID)) {
-                _touchPositions.Add (fingerID, _game.ToLocal (x, y));
+                _touchPositions.Add (fingerID, Game.Instance.ToLocal (x, y));
             }
         }
 
@@ -97,7 +116,7 @@ namespace ballfall.management {
             base.TouchMove (fingerID, x, y);
 
             if (_touchPositions.ContainsKey (fingerID)) {
-                _touchPositions[fingerID] = _game.ToLocal (x, y);
+                _touchPositions[fingerID] = Game.Instance.ToLocal (x, y);
             }
         }
     }

@@ -14,11 +14,11 @@ namespace game.content {
         #endregion
 
         #region Init methods
-        public virtual void Init (ISystem sys) {
+        public virtual void Init () {
             Scale = new Vector2D (1, 1);
         }
 
-        public virtual void Shutdown (ISystem sys) {
+        public virtual void Shutdown () {
             Pos = Vector2D.Zero;
             Rotation = 0;
             Scale = Vector2D.Zero;
@@ -42,15 +42,15 @@ namespace game.content {
         #endregion
 
         #region Helper methods
-        protected int LoadTextureFromAsset (IContentManager contentManager, string asset) {
+        protected int LoadTextureFromAsset (string asset) {
             int texID = 0;
             GL.GenTextures (1, ref texID);
             GL.BindTexture (All.Texture2D, texID);
 
-            using (var image = contentManager.LoadImage (asset)) {
-                IntPtr pixels = contentManager.LockPixels (image);
-                GL.TexImage2D (All.Texture2D, 0, (int)All.Rgba, contentManager.GetWidth (image), contentManager.GetHeight (image), 0, All.Rgba, All.UnsignedByte, pixels);
-                contentManager.UnlockPixels (image);
+            using (var image = Game.ContentManager.LoadImage (asset)) {
+                IntPtr pixels = Game.ContentManager.LockPixels (image);
+                GL.TexImage2D (All.Texture2D, 0, (int)All.Rgba, Game.ContentManager.GetWidth (image), Game.ContentManager.GetHeight (image), 0, All.Rgba, All.UnsignedByte, pixels);
+                Game.ContentManager.UnlockPixels (image);
             }
 
             GL.TexParameter (All.Texture2D, All.TextureMinFilter, (int)All.Linear);

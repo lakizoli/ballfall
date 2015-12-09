@@ -20,8 +20,8 @@ namespace ballfall.content {
             _color = color;
         }
 
-        public override void Init (ISystem sys) {
-            base.Init (sys);
+        public override void Init () {
+            base.Init ();
 
             string asset;
             switch (_color) {
@@ -33,18 +33,18 @@ namespace ballfall.content {
                     throw new NotImplementedException ();
             }
 
-            _tex = LoadTextureFromAsset (sys.ContentManager, asset);
+            _tex = LoadTextureFromAsset (asset);
             _vbo = NewTexturedVBO (_tex);
         }
 
-        public override void Shutdown (ISystem sys) {
+        public override void Shutdown () {
             GL.DeleteBuffers (_vbo.Length, _vbo);
             _vbo = null;
 
             GL.DeleteTextures (1, ref _tex);
             _tex = 0;
 
-            base.Shutdown (sys);
+            base.Shutdown ();
         }
 
         protected override void RenderMesh () {

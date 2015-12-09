@@ -43,7 +43,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="content\Animation.cs" />
     <Compile Include="content\Mesh2D.cs" />
+    <Compile Include="content\QuickTimeEvent.cs" />
     <Compile Include="content\Vector2D.cs" />
     <Compile Include="management\Game.cs" />
     <Compile Include="management\Scene.cs" />

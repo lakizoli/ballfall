@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="content\Ball.cs" />
+    <Compile Include="content\QTEPulseBall.cs" />
     <Compile Include="management\BallFallGame.cs" />
     <Compile Include="management\FallScene.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

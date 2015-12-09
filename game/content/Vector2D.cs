@@ -124,10 +124,12 @@ namespace game.content {
         }
 
         public override int GetHashCode () {
-            string val = X.ToString () + ":" + Y.ToString ();
-            return val.GetHashCode ();
+            return ToString ().GetHashCode ();
         }
 
+        public override string ToString () {
+            return "(X: " + X + "; Y: " + Y + ")";
+        }
         #endregion
     }
 }
