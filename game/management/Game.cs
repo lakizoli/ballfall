@@ -2,7 +2,6 @@ using System;
 using OpenTK.Graphics.ES11;
 using game.content;
 
-//TODO: létre kell hozni a Scene (jelenet) osztályt, ami egy komplett jelenetet foglal magába (like MiniGame), resource-ostul, mûködésestül
 //TODO: létre kell hozni a QuickTimeEvent osztályt, ami egy elõre leprogramozott animációt hajt végre a Scene-en (mint pl.: menüpont villogása, ha megnyomták). Jellemzõje, hogy ilyenkor tiltott az input...
 //TODO: létre kell hozni az Animation osztályt, amiben egy animáció lehet leírva. pl.: mesh animáció, textúra animáció, szín animáció
 
@@ -51,6 +50,22 @@ namespace game.management {
         #region Data
         int _width = 0;
         int _height = 0;
+
+        private Scene _currentScene;
+        public Scene CurrentScene
+        {
+            get { return _currentScene; }
+            set
+            {
+                if (_currentScene != null) {
+                    _currentScene.Shutdown ();
+                }
+                if (value != null) {
+                    value.Init (_width, _height);
+                }
+                _currentScene = value;
+            }
+        }
         #endregion
 
         #region Construction
@@ -66,6 +81,7 @@ namespace game.management {
         }
 
         public virtual void Shutdown () {
+            CurrentScene = null;
         }
 
         public void Resize (int oldWidth, int oldHeight, int newWidth, int newHeight) {
@@ -76,17 +92,45 @@ namespace game.management {
         /// The update step of the game.
         /// </summary>
         /// <param name="elapsedTime">The elapsed time from the last update in seconds.</param>
-        public abstract void Update (double elapsedTime);
+        public virtual void Update (double elapsedTime) {
+            if (_currentScene != null)
+                _currentScene.Update (elapsedTime);
+        }
 
-        public abstract void Render ();
+        public virtual void Render () {
+            if (_currentScene != null)
+                _currentScene.Render ();
+        }
         #endregion
 
         #region Input handlers
-        public virtual void TouchDown (int fingerID, float x, float y) { }
+        public virtual void TouchDown (int fingerID, float x, float y) {
+            if (_currentScene != null)
+                _currentScene.TouchDown (fingerID, x, y);
+        }
 
-        public virtual void TouchUp (int fingerID, float x, float y) { }
+        public virtual void TouchUp (int fingerID, float x, float y) {
+            if (_currentScene != null)
+                _currentScene.TouchUp (fingerID, x, y);
+        }
 
-        public virtual void TouchMove (int fingerID, float x, float y) { }
+        public virtual void TouchMove (int fingerID, float x, float y) {
+            if (_currentScene != null)
+                _currentScene.TouchMove (fingerID, x, y);
+        }
+        #endregion
+
+        #region Helper methods
+        public Vector2D ToLocal (float x, float y) {
+            float min = Math.Min (_width, _height);
+            float max = Math.Max (_width, _height);
+            float aspect = max / min;
+            if (_width <= _height) {
+                return new Vector2D (x / (float)_width, aspect * y / (float)_height);
+            }
+
+            return new Vector2D (aspect * x / (float)_width, y / (float)_height);
+        }
         #endregion
 
         #region Inner methods
@@ -106,18 +150,6 @@ namespace game.management {
                 GL.Ortho (0, aspect, 1.0f, 0, -1.0f, 1.0f);
             }
         }
-
-        protected Vector2D ToLocal (float x, float y) {
-            float min = Math.Min (_width, _height);
-            float max = Math.Max (_width, _height);
-            float aspect = max / min;
-            if (_width <= _height) {
-                return new Vector2D (x / (float)_width, aspect * y / (float)_height);
-            }
-
-            return new Vector2D (aspect * x / (float)_width, y / (float)_height);
-        }
-
         #endregion
     }
 }
