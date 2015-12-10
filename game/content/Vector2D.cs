@@ -74,6 +74,14 @@ namespace game.content {
             return Vector2D.Cross (this, vec);
         }
 
+        public static Vector2D Normalize (Vector2D vec) {
+            return vec / vec.Length;
+        }
+
+        public Vector2D Normalize () {
+            return Vector2D.Normalize (this);
+        }
+
         public static bool operator >(Vector2D v1, Vector2D v2) {
             return v1.X > v2.X && v1.Y > v2.Y;
         }

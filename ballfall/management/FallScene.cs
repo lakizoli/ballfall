@@ -13,6 +13,7 @@ namespace ballfall.management {
         struct FallingBall {
             public Ball ball;
             public RigidBody2D body;
+            public float lastTouch;
         }
 
         struct LevelDefinition {
@@ -148,9 +149,10 @@ namespace ballfall.management {
                 ball.Pos = new Vector2D (newX, ball.TransformedBoundingBox.Height / 2.0f);
 
                 RigidBody2D body = new RigidBody2D () {
-                    Pos = ball.Pos,
+                    Mesh = ball,
                     Velocity = new Vector2D (0, level.startVelocityY),
                     Mass = 1.0f, //1 kg
+                    FindCollision = new RigidBody2D.FindCollisionDelegate (FindCollision)
                 };
 
                 _fallingBalls.Add (new FallingBall () {
@@ -166,7 +168,7 @@ namespace ballfall.management {
                 item.body.Force += new Vector2D (0, 1.0f * RigidBody2D.Gravity);
                 item.body.Update (elapsedTime);
                 //TODO: itt kezelni kell az ütközéseket... (de ha bombával ütköztünk, akkor végünk!)
-                item.ball.Pos = item.body.Pos;
+
                 if (item.ball.Pos.Y - item.ball.BoundingBox.Height * item.ball.Scale.Y / 2.0f > Game.Instance.ScreenHeight) {
                     //TODO: itt le kell kezelni, hogy meghalt a játékos...
 
@@ -221,9 +223,13 @@ namespace ballfall.management {
                     FallingBall item = _fallingBalls[i];
                     Vector2D pos = Game.Instance.ToLocal (x, y);
                     if (item.ball.TransformedBoundingBox.Contains (pos)) {
-                        //TODO: itt kezelni kell a bombákat!!!
-                        _touchedBalls.Add (fingerID, item);
-                        _fallingBalls.RemoveAt (i);
+                        if (item.ball.Type == Ball.Color.Bomb) {
+                            HandleBombBlowEnd (item.ball);
+                        } else {
+                            item.lastTouch = _fullTime;
+                            _touchedBalls.Add (fingerID, item);
+                            _fallingBalls.RemoveAt (i);
+                        }
                         break;
                     }
                 }
@@ -235,17 +241,7 @@ namespace ballfall.management {
 
             if (_failBall == null && _touchedBalls.ContainsKey (fingerID)) {
                 FallingBall item = _touchedBalls[fingerID];
-
-                Vector2D newPos = Game.Instance.ToLocal (x, y);
-                Vector2D dist = newPos - item.body.LastPos;
-                item.ball.Pos = newPos;
-
-                item.body.LastPos = item.body.Pos;
-                item.body.Pos = item.ball.Pos;
-                item.body.Velocity = new Vector2D ();
-
-                //TODO: megcsinalni a dobast...
-                item.body.Force += dist * 100.0f;
+                RefreshTouchedBall (item, x, y);
 
                 RegionTest test = TestBallInEndRegions (item);
                 switch (test) {
@@ -258,7 +254,7 @@ namespace ballfall.management {
                         HandleGoodRegionEnd (fingerID, item.ball);
                         break;
                     case RegionTest.WrongRegion:
-                        //TODO: handle fail of game
+                        HandleWrongRegionEnd (fingerID, item.ball);
                         break;
                 }
             }
@@ -269,9 +265,7 @@ namespace ballfall.management {
 
             if (_failBall == null && _touchedBalls.ContainsKey (fingerID)) {
                 FallingBall item = _touchedBalls[fingerID];
-                item.ball.Pos = Game.Instance.ToLocal (x, y);
-                item.body.LastPos = item.body.Pos;
-                item.body.Pos = item.ball.Pos;
+                RefreshTouchedBall (item, x, y);
 
                 RegionTest test = TestBallInEndRegions (item);
                 switch (test) {
@@ -282,7 +276,7 @@ namespace ballfall.management {
                         HandleGoodRegionEnd (fingerID, item.ball);
                         break;
                     case RegionTest.WrongRegion:
-                        //TODO: handle fail of game
+                        HandleWrongRegionEnd (fingerID, item.ball);
                         break;
                 }
             }
@@ -290,6 +284,51 @@ namespace ballfall.management {
         #endregion
 
         #region Helper methods
+        private void RefreshTouchedBall (FallingBall item, float x, float y) {
+            float elapsedTime = _fullTime - item.lastTouch;
+            item.lastTouch = _fullTime;
+
+            item.body.LastPos = item.ball.Pos;
+            item.ball.Pos = Game.Instance.ToLocal (x, y);
+
+            Vector2D dist = item.ball.Pos - item.body.LastPos;
+            item.body.Velocity = dist / elapsedTime / RigidBody2D.PhysicalScale;
+
+            //TODO: megcsinalni a dobast...
+            //item.body.Force += dist * 100.0f;
+        }
+
+        private RigidBody2D FindCollision (RigidBody2D body) {
+            //Check dragged balls for collision
+            float radius = 0.1f;
+            foreach (int fingerID in _touchedBalls.Keys) {
+                FallingBall item = _touchedBalls[fingerID];
+                if (item.body == body)
+                    continue;
+
+                Vector2D dist = item.ball.Pos - body.Mesh.Pos;
+                if (dist.Length < radius * 2.0f) {
+                    //Game.Util.Log ("collision1 item: " + item.ball.Pos + ", body: " + body.Mesh.Pos + ", dist: " + dist.Length + ", radius: " + radius + ", type: " + item.ball.Type);
+                    return item.body;
+                }
+            }
+
+            //Check other falling balls for collision
+            for (int i = 0; i < _fallingBalls.Count; ++i) {
+                FallingBall item = _fallingBalls[i];
+                if (item.body == body)
+                    continue;
+
+                Vector2D dist = item.ball.Pos - body.Mesh.Pos;
+                if (dist.Length < radius * 2.0f) {
+                    //Game.Util.Log ("collision2 item: " + item.ball.Pos + ", body: " + body.Mesh.Pos + ", dist: " + dist.Length + ", radius: " + radius + ", type: " + item.ball.Type);
+                    return item.body;
+                }
+            }
+
+            return null;
+        }
+
         private RegionTest TestBallInEndRegions (FallingBall item) {
             if (_yellowRegion.Contains (item.ball.Pos)) {
                 return item.ball.Type == Ball.Color.Yellow || item.ball.Type == Ball.Color.Magic ? RegionTest.GoodRegion : RegionTest.WrongRegion;
@@ -313,7 +352,11 @@ namespace ballfall.management {
         }
 
         private void HandleWrongRegionEnd (int fingerID, Ball ball) {
-            //...
+            //TODO: handle fail of game
+        }
+
+        private void HandleBombBlowEnd (Ball ball) {
+            //TODO: bomba robbanas kezelese (fail)
         }
         #endregion
     }
