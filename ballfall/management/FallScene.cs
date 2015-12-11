@@ -13,7 +13,9 @@ namespace ballfall.management {
         struct FallingBall {
             public Ball ball;
             public RigidBody2D body;
+
             public float lastTouch;
+            public List<Vector2D> lastVelocities;
         }
 
         struct LevelDefinition {
@@ -204,14 +206,12 @@ namespace ballfall.management {
                 item.ball.Render ();
 
             //Draw dragged balls
-            foreach (FallingBall item in _touchedBalls.Values) {
+            foreach (FallingBall item in _touchedBalls.Values)
                 item.ball.Render ();
-            }
 
             //Draw ended balls
-            foreach (QTEGoodBall item in _endedBalls) {
+            foreach (QTEGoodBall item in _endedBalls)
                 item.Render ();
-            }
         }
 
         #region Input handlers
@@ -227,6 +227,7 @@ namespace ballfall.management {
                             HandleBombBlowEnd (item.ball);
                         } else {
                             item.lastTouch = _fullTime;
+                            item.lastVelocities = new List<Vector2D> ();
                             _touchedBalls.Add (fingerID, item);
                             _fallingBalls.RemoveAt (i);
                         }
@@ -285,17 +286,32 @@ namespace ballfall.management {
 
         #region Helper methods
         private void RefreshTouchedBall (FallingBall item, float x, float y) {
-            float elapsedTime = _fullTime - item.lastTouch;
-            item.lastTouch = _fullTime;
+            Vector2D curPos = Game.Instance.ToLocal (x, y);
+            if (item.ball.Pos != curPos) {
+                item.body.LastPos = item.ball.Pos;
+                item.ball.Pos = curPos;
 
-            item.body.LastPos = item.ball.Pos;
-            item.ball.Pos = Game.Instance.ToLocal (x, y);
+                float elapsedTime = _fullTime - item.lastTouch;
+                item.lastTouch = _fullTime;
 
-            Vector2D dist = item.ball.Pos - item.body.LastPos;
-            item.body.Velocity = dist / elapsedTime / RigidBody2D.PhysicalScale;
+                Vector2D dist = item.ball.Pos - item.body.LastPos;
+                Vector2D velocity = dist / elapsedTime * RigidBody2D.PhysicalScale;
+                item.lastVelocities.Add (velocity);
 
-            //TODO: megcsinalni a dobast...
-            //item.body.Force += dist * 100.0f;
+                while (item.lastVelocities.Count > 3)
+                    item.lastVelocities.RemoveAt (0);
+
+                Vector2D avgVel = Vector2D.Zero;
+                foreach (var vel in item.lastVelocities)
+                    avgVel += vel;
+                avgVel /= (float)item.lastVelocities.Count;
+
+                item.body.Velocity = avgVel;
+
+                if (item.body.Velocity.Length > 3.0f) {
+                    item.body.Velocity = item.body.Velocity.Normalize () * 3.0f;
+                }
+            }
         }
 
         private RigidBody2D FindCollision (RigidBody2D body) {
@@ -307,10 +323,8 @@ namespace ballfall.management {
                     continue;
 
                 Vector2D dist = item.ball.Pos - body.Mesh.Pos;
-                if (dist.Length < radius * 2.0f) {
-                    //Game.Util.Log ("collision1 item: " + item.ball.Pos + ", body: " + body.Mesh.Pos + ", dist: " + dist.Length + ", radius: " + radius + ", type: " + item.ball.Type);
+                if (dist.Length < radius * 2.0f)
                     return item.body;
-                }
             }
 
             //Check other falling balls for collision
@@ -320,10 +334,8 @@ namespace ballfall.management {
                     continue;
 
                 Vector2D dist = item.ball.Pos - body.Mesh.Pos;
-                if (dist.Length < radius * 2.0f) {
-                    //Game.Util.Log ("collision2 item: " + item.ball.Pos + ", body: " + body.Mesh.Pos + ", dist: " + dist.Length + ", radius: " + radius + ", type: " + item.ball.Type);
+                if (dist.Length < radius * 2.0f)
                     return item.body;
-                }
             }
 
             return null;

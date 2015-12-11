@@ -8,26 +8,8 @@ namespace game.content {
         /// <summary>
         /// Calculate intersection point of a line and a circle.
         /// 
-        /// kor egyenlet: (x - u)^2 + (y - v)^2 = r^2, ahol [u,v] a kozeppont, es r a sugar
-        /// Egyenes egyenlet: v2 * x - v1 * y = v2 * x0 - v1 * y0, ahol v(v1, v2) az iranyvektor, ill. [x0,y0] a pont, amin atmegy
-        ///
-        /// 1. egyenlet:
-        /// v2 * x - v1 * y = const
-        /// y = (v2 * x - const) / v1       , ahol const = v2*x0 - v1*y0
-        ///
-        /// 2. egyenlet:
-        /// (x^2 - 2*x*u + u^2) + (y^2 - 2*y*v + v^2) = r^2
-        /// x^2 + y^2 - 2*u*x - 2*v*y = r^2 - u^2 - v^2
-        ///
-        /// Osszerakva:
-        /// x^2 + (v2/v1*x - const/v1))^2 - 2*u*x - 2*v*(v2/v1 * x - const/v1) = r^2 - u^2 - v^2
-        /// x^2 + (v2/v1*x)^2 - 2*v2/v1*x * const/v1 + (const/v1)^2 - 2*u*x - 2*v*v2/v1*x + 2*v*const/v1 = r^2 - u^2 - v^2
-        ///
-        /// Masodfoku egyenlet parameterei:
-        /// a = (v2 / v1)^2 + 1
-        /// b = -2*v2/v1*const/v1 - 2*u - 2*v2/v1
-        /// c = (const/v1)^2 + 2*v*const/v1 - r^2 + u^2 + v^2
-        ///
+        /// Circle equation: (x - u)^2 + (y - v)^2 = r^2, where [u,v] is the origin of the circle, and r is the radius of the circle
+        /// Line equation: v2 * x - v1 * y = v2 * x0 - v1 * y0, where [v1, v2] is the normalized direction vector of the line, and [x0,y0] is a point of the line
         /// </summary>
         /// <param name="dir">The normalized direction vector of the line.</param>
         /// <param name="pt">On point of the line.</param>
@@ -36,7 +18,7 @@ namespace game.content {
         /// <returns>null, when no intersection found.</returns>
         public static Vector2D[] LineCircleIntersection (Vector2D dir, Vector2D pt, Vector2D origin, float radius) {
             if (dir.X == 0.0f) {
-                Vector2D[] res = LineCircleIntersection (new Vector2D (dir.Y, dir.X), new Vector2D (pt.Y, pt.X), new Vector2D(origin.Y, origin.X), radius);
+                Vector2D[] res = LineCircleIntersection (new Vector2D (dir.Y, dir.X), new Vector2D (pt.Y, pt.X), new Vector2D (origin.Y, origin.X), radius);
                 if (res == null)
                     return null;
 
@@ -53,38 +35,28 @@ namespace game.content {
                 }
 
                 return res;
-            } 
-
-            float m = dir.Y / dir.X;
-            float cl = dir.Y * pt.X - dir.X * pt.Y;
-            float a = (float)Math.Pow (m, 2.0f) + 1.0f;
-            float b = -2.0f * m * cl / dir.X - 2.0f * origin.X - 2.0f * m;
-            float c = (float)Math.Pow (cl / pt.X, 2.0f) + 2 * origin.Y * cl / dir.X - (float)Math.Pow (radius, 2) + (float)Math.Pow (origin.X, 2) + (float)Math.Pow (origin.Y, 2);
-
-            float det = (float)Math.Pow (b, 2) - 4 * a * c;
-            if (det < 0) //No intersection point
-                return null;
-
-            if (det == 0.0f) { //One intersection point
-                Vector2D res = new Vector2D ();
-                res.X = -1.0f * b / (2.0f * a);
-                res.Y = (dir.Y * res.X - cl) / dir.X;
-
-                return new Vector2D[] { res };
             }
 
-            //Two intersection point
-            det = (float)Math.Sqrt (det);
+            float t1 = dir.X * dir.X;
+            float t3 = dir.X * dir.Y;
+            float t6 = dir.Y * dir.Y;
+            float t8 = t1 * t1;
+            float t9 = origin.Y * origin.Y;
+            float t14 = pt.Y * pt.Y;
+            float t16 = radius * radius;
+            float t19 = t1 * dir.X * dir.Y;
+            float t32 = t1 * t6;
+            float t33 = origin.X * origin.X;
+            float t38 = pt.X * pt.X;
+            float t41 = 2 * t19 * origin.X * origin.Y + 2 * t32 * origin.X * pt.X - 2 * t19 * origin.X * pt.Y - 2 * t19 * origin.Y * pt.X + 2 * t8 * origin.Y * pt.Y + 2 * t19 * pt.X * pt.Y - t8 * t14 + t32 * t16 + t8 * t16 - t32 * t33 - t32 * t38 - t8 * t9;
+            float t42 = (float)Math.Sqrt (t41);
+            float resX1 = (t1 * origin.X + t3 * origin.Y + t6 * pt.X - t3 * pt.Y + t42) / (t1 + t6);
+            float resX2 = -(-(t1 * origin.X) - t3 * origin.Y - t6 * pt.X + t3 * pt.Y + t42) / (t1 + t6);
 
-            Vector2D res1 = new Vector2D ();
-            res1.X = (-1.0f * b + det) / (2.0f * a);
-            res1.Y = (dir.Y * res1.X - cl) / dir.X;
+            float resY1 = t6 = (dir.X * pt.Y - dir.Y * pt.X + dir.Y * resX1) / dir.X;
+            float resY2 = t6 = (dir.X * pt.Y - dir.Y * pt.X + dir.Y * resX2) / dir.X;
 
-            Vector2D res2 = new Vector2D ();
-            res2.X = (-1.0f * b - det) / (2.0f * a);
-            res2.Y = (dir.Y * res2.X - cl) / dir.X;
-
-            return new Vector2D[] { res1, res2 };
+            return new Vector2D[] { new Vector2D (resX1, resY1), new Vector2D (resX2, resY2) };
         }
     }
 }
