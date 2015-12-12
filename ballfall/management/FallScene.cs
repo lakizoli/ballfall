@@ -76,7 +76,7 @@ namespace ballfall.management {
             _levels.Add (new LevelDefinition () { index = 0, endTime = 30, minAddTime = 1000, maxAddTime = 2000, startVelocityY = 0.0f, maxAddCount = 1 });
             _levels.Add (new LevelDefinition () { index = 1, endTime = 60, minAddTime = 850, maxAddTime = 1500, startVelocityY = 0.5f, maxAddCount = 1 });
             _levels.Add (new LevelDefinition () { index = 2, endTime = 90, minAddTime = 750, maxAddTime = 1200, startVelocityY = 1.0f, maxAddCount = 1 });
-            _levels.Add (new LevelDefinition () { index = 2, endTime = 120, minAddTime = 750, maxAddTime = 1200, startVelocityY = 1.0f, maxAddCount = 2 });
+            _levels.Add (new LevelDefinition () { index = 3, endTime = 120, minAddTime = 750, maxAddTime = 1200, startVelocityY = 1.0f, maxAddCount = 2 });
 
             _currentLevel = 0;
             _score = 0;
