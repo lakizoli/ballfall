@@ -15,6 +15,7 @@ namespace ballfall.management {
             public RigidBody2D body;
 
             public float lastTouch;
+            public Vector2D touchPosition;
             public List<Vector2D> lastVelocities;
         }
 
@@ -24,6 +25,7 @@ namespace ballfall.management {
             public int minAddTime; //minimal time of next add time range [millisec]
             public int maxAddTime; //maximal time of next add time range [millisec]
             public float startVelocityY;
+            public int maxAddCount;
         }
 
         enum RegionTest {
@@ -31,11 +33,19 @@ namespace ballfall.management {
             GoodRegion,
             WrongRegion
         }
+
+        enum State {
+            Game,
+            FallError,
+        }
         #endregion
 
         #region Data
         List<LevelDefinition> _levels;
         int _currentLevel;
+        int _score;
+        int _lastMins;
+        int _lastSecs;
 
         Random _random;
         float _fullTime;
@@ -48,8 +58,10 @@ namespace ballfall.management {
 
         List<FallingBall> _fallingBalls;
         List<QTEGoodBall> _endedBalls;
-        Ball _failBall;
-        Background _background;
+        List<QTEExplodeBall> _explodedBalls;
+        ImageMesh _background;
+        QTEFail _fail;
+        State _state;
 
         Dictionary<int, FallingBall> _touchedBalls;
         #endregion
@@ -58,11 +70,18 @@ namespace ballfall.management {
         }
 
         public override void Init (int width, int height) {
+            _state = State.Game;
+
             _levels = new List<LevelDefinition> ();
-            _levels.Add (new LevelDefinition () { index = 0, endTime = 30, minAddTime = 1000, maxAddTime = 2000, startVelocityY = 0.0f });
-            _levels.Add (new LevelDefinition () { index = 1, endTime = 60, minAddTime = 850, maxAddTime = 1500, startVelocityY = 0.5f });
-            _levels.Add (new LevelDefinition () { index = 2, endTime = 90, minAddTime = 750, maxAddTime = 1200, startVelocityY = 1.0f });
+            _levels.Add (new LevelDefinition () { index = 0, endTime = 30, minAddTime = 1000, maxAddTime = 2000, startVelocityY = 0.0f, maxAddCount = 1 });
+            _levels.Add (new LevelDefinition () { index = 1, endTime = 60, minAddTime = 850, maxAddTime = 1500, startVelocityY = 0.5f, maxAddCount = 1 });
+            _levels.Add (new LevelDefinition () { index = 2, endTime = 90, minAddTime = 750, maxAddTime = 1200, startVelocityY = 1.0f, maxAddCount = 1 });
+            _levels.Add (new LevelDefinition () { index = 2, endTime = 120, minAddTime = 750, maxAddTime = 1200, startVelocityY = 1.0f, maxAddCount = 2 });
+
             _currentLevel = 0;
+            _score = 0;
+            _lastMins = 0;
+            _lastSecs = 0;
 
             _random = new Random ();
             _fullTime = 0;
@@ -75,8 +94,9 @@ namespace ballfall.management {
 
             _fallingBalls = new List<FallingBall> ();
             _endedBalls = new List<QTEGoodBall> ();
+            _explodedBalls = new List<QTEExplodeBall> ();
 
-            _background = new Background ();
+            _background = new ImageMesh ("background.png");
             _background.Init ();
 
             Vector2D screenSize = Game.Instance.ToLocal (width, height);
@@ -84,17 +104,25 @@ namespace ballfall.management {
             _background.Scale = screenSize / _background.BoundingBox.Size;
 
             _touchedBalls = new Dictionary<int, FallingBall> ();
+
+            RefreshOverlays (true);
         }
 
         public override void Shutdown () {
             _touchedBalls = null;
 
+            if (_fail != null) {
+                _fail.Stop ();
+                _fail.Shutdown ();
+            }
+
             _background.Shutdown ();
 
-            if (_failBall != null) {
-                _failBall.Shutdown ();
-                _failBall = null;
+            foreach (QTEExplodeBall item in _explodedBalls) {
+                item.Stop ();
+                item.Shutdown ();
             }
+            _explodedBalls.Clear ();
 
             foreach (QTEGoodBall item in _endedBalls) {
                 item.Stop ();
@@ -118,69 +146,69 @@ namespace ballfall.management {
             _fullTime += elapsedTime;
             _lastAddTime += elapsedTime;
 
+            RefreshOverlays (false);
+
             //Pick next level
             LevelDefinition level = _levels[_currentLevel];
 
             if (_fullTime > level.endTime && _currentLevel < _levels.Count - 1) {
                 _currentLevel += 1;
-                Game.Util.Log ("current level: " + _currentLevel);
+                RefreshOverlays (true);
             }
 
             level = _levels[_currentLevel];
 
             //Add new ball to the system
-            if (_lastAddTime > _random.Next (level.minAddTime, level.maxAddTime) / 1000.0f) {
-                Ball ball = null;
-                switch (_random.Next (6)) {
-                    default:
-                    case 0: ball = new Ball (Ball.Color.Red); break;
-                    case 1: ball = new Ball (Ball.Color.Green); break;
-                    case 2: ball = new Ball (Ball.Color.Blue); break;
-                    case 3: ball = new Ball (Ball.Color.Yellow); break;
-                    case 4: ball = new Ball (Ball.Color.Magic); break;
-                    case 5: ball = new Ball (Ball.Color.Bomb); break;
-                }
-
-                ball.Init ();
-                ball.Scale = new Vector2D (0.1f, 0.1f);
-
-                float screenWidth = Game.Instance.ScreenWidth;
-                float border = ball.TransformedBoundingBox.Width / 2.0f + Game.Instance.ToLocal (20 * 4, 0).X;
-                float newX = _random.Next ((int)((screenWidth - 2.0f * border) * 1000.0f)) / 1000.0f + border;
-
-                ball.Pos = new Vector2D (newX, ball.TransformedBoundingBox.Height / 2.0f);
-
-                RigidBody2D body = new RigidBody2D () {
-                    Mesh = ball,
-                    Velocity = new Vector2D (0, level.startVelocityY),
-                    Mass = 1.0f, //1 kg
-                    FindCollision = new RigidBody2D.FindCollisionDelegate (FindCollision)
-                };
-
-                _fallingBalls.Add (new FallingBall () {
-                    ball = ball,
-                    body = body
-                });
-                _lastAddTime = 0;
-            }
+            AddNewBalls (level);
 
             //Calculate physic (Remove balls not on screen)
             for (int i = _fallingBalls.Count - 1; i >= 0; --i) {
                 FallingBall item = _fallingBalls[i];
                 item.body.Force += new Vector2D (0, 1.0f * RigidBody2D.Gravity);
                 item.body.Update (elapsedTime);
-                //TODO: itt kezelni kell az ütközéseket... (de ha bombával ütköztünk, akkor végünk!)
 
-                if (item.ball.Pos.Y - item.ball.BoundingBox.Height * item.ball.Scale.Y / 2.0f > Game.Instance.ScreenHeight) {
-                    //TODO: itt le kell kezelni, hogy meghalt a játékos...
+                if (item.body.CollideBody != null) { //If this item collide with other item
+                    Ball collideBall = item.body.CollideBody.Mesh as Ball;
+                    if (collideBall != null && collideBall.Type == Ball.Color.Bomb) { //Handle collision with bomb
+                        _fallingBalls.RemoveAt (i);
+                        HandleBombBlowEnd (collideBall);
+                        continue;
+                    } else if (item.ball.Type == Ball.Color.Bomb) { //Handle collision with bomb
+                        _fallingBalls.RemoveAt (i);
+                        HandleBombBlowEnd (item.ball);
+                        continue;
+                    }
+                }
 
-                    item.ball.Shutdown ();
-                    _fallingBalls.RemoveAt (i);
+                RegionTest test = TestBallInEndRegions (item);
+                switch (test) {
+                    default:
+                    case RegionTest.NotInRegion:
+                        break;
+                    case RegionTest.GoodRegion:
+                        _fallingBalls.RemoveAt (i);
+                        HandleGoodRegionEnd (item.ball);
+                        continue;
+                    case RegionTest.WrongRegion:
+                        _fallingBalls.RemoveAt (i);
+                        HandleWrongRegionEnd (item.ball);
+                        continue;
+                }
+
+                float yTest = item.ball.Pos.Y - item.ball.BoundingBox.Height * item.ball.Scale.Y / 2.0f;
+                if (yTest < 0 || yTest > Game.Instance.ScreenHeight) { //When ball has fallen
+                    if (item.ball.Type == Ball.Color.Bomb) {
+                        _fallingBalls.RemoveAt (i);
+                        item.ball.Shutdown ();
+                    } else { //Fail
+                        HandleBallFallFailEnd ();
+                        break;
+                    }
                 }
             }
 
             //Calculate ended ball animation
-            for (int i = _endedBalls.Count - 1;i > 0;--i) {
+            for (int i = _endedBalls.Count - 1;i >= 0;--i) {
                 QTEGoodBall item = _endedBalls[i];
                 item.Update (elapsedTime);
                 if (item.IsEnded) {
@@ -188,6 +216,19 @@ namespace ballfall.management {
                     item.Shutdown ();
                 }
             }
+
+            //Calculate exploded ball animation
+            for (int i = _explodedBalls.Count - 1; i >= 0; --i) {
+                QTEExplodeBall item = _explodedBalls[i];
+                item.Update (elapsedTime);
+                if (item.IsEnded) {
+                    _explodedBalls.RemoveAt (i);
+                    item.Shutdown ();
+                }
+            }
+
+            if (_fail != null)
+                _fail.Update (elapsedTime);
 
             //...
         }
@@ -212,79 +253,152 @@ namespace ballfall.management {
             //Draw ended balls
             foreach (QTEGoodBall item in _endedBalls)
                 item.Render ();
+
+            //Draw exploded balls
+            foreach (QTEExplodeBall item in _explodedBalls)
+                item.Render ();
+
+            if (_fail != null)
+                _fail.Render ();
         }
 
         #region Input handlers
         public override void TouchDown (int fingerID, float x, float y) {
             base.TouchDown (fingerID, x, y);
 
-            if (_failBall == null && !_touchedBalls.ContainsKey (fingerID)) {
-                for (int i = 0; i < _fallingBalls.Count; ++i) {
-                    FallingBall item = _fallingBalls[i];
-                    Vector2D pos = Game.Instance.ToLocal (x, y);
-                    if (item.ball.TransformedBoundingBox.Contains (pos)) {
-                        if (item.ball.Type == Ball.Color.Bomb) {
-                            HandleBombBlowEnd (item.ball);
-                        } else {
-                            item.lastTouch = _fullTime;
-                            item.lastVelocities = new List<Vector2D> ();
-                            _touchedBalls.Add (fingerID, item);
-                            _fallingBalls.RemoveAt (i);
+            switch (_state) {
+                case State.Game:
+                    if (!_touchedBalls.ContainsKey (fingerID)) {
+                        for (int i = 0; i < _fallingBalls.Count; ++i) {
+                            FallingBall item = _fallingBalls[i];
+                            Vector2D pos = Game.Instance.ToLocal (x, y);
+
+                            Rect2D testRect = item.ball.TransformedBoundingBox.Scale (new Vector2D (1.1f, 1.1f));
+                            testRect.LeftTop -= new Vector2D (0, 0.15f);
+                            if (testRect.Contains (pos)) {
+                                if (item.ball.Type == Ball.Color.Bomb) {
+                                    _fallingBalls.RemoveAt (i);
+                                    HandleBombBlowEnd (item.ball);
+                                } else {
+                                    item.lastTouch = _fullTime;
+                                    item.touchPosition = pos;
+                                    item.lastVelocities = new List<Vector2D> ();
+                                    _touchedBalls.Add (fingerID, item);
+                                    _fallingBalls.RemoveAt (i);
+                                }
+                                break;
+                            }
                         }
-                        break;
                     }
-                }
+                    break;
+                default:
+                    break;
             }
         }
 
         public override void TouchUp (int fingerID, float x, float y) {
             base.TouchUp (fingerID, x, y);
 
-            if (_failBall == null && _touchedBalls.ContainsKey (fingerID)) {
-                FallingBall item = _touchedBalls[fingerID];
-                RefreshTouchedBall (item, x, y);
+            switch (_state) {
+                case State.Game:
+                    if (_touchedBalls.ContainsKey (fingerID)) {
+                        FallingBall item = _touchedBalls[fingerID];
+                        RefreshTouchedBall (item, x, y);
 
-                RegionTest test = TestBallInEndRegions (item);
-                switch (test) {
-                    default:
-                    case RegionTest.NotInRegion:
-                        _fallingBalls.Add (item);
-                        _touchedBalls.Remove (fingerID);
-                        break;
-                    case RegionTest.GoodRegion:
-                        HandleGoodRegionEnd (fingerID, item.ball);
-                        break;
-                    case RegionTest.WrongRegion:
-                        HandleWrongRegionEnd (fingerID, item.ball);
-                        break;
-                }
+                        RegionTest test = TestBallInEndRegions (item);
+                        switch (test) {
+                            default:
+                            case RegionTest.NotInRegion:
+                                _fallingBalls.Add (item);
+                                _touchedBalls.Remove (fingerID);
+                                break;
+                            case RegionTest.GoodRegion:
+                                _touchedBalls.Remove (fingerID);
+                                HandleGoodRegionEnd (item.ball);
+                                break;
+                            case RegionTest.WrongRegion:
+                                HandleWrongRegionEnd (item.ball);
+                                break;
+                        }
+                    }
+                    break;
+                default:
+                    break;
             }
         }
 
         public override void TouchMove (int fingerID, float x, float y) {
             base.TouchMove (fingerID, x, y);
 
-            if (_failBall == null && _touchedBalls.ContainsKey (fingerID)) {
-                FallingBall item = _touchedBalls[fingerID];
-                RefreshTouchedBall (item, x, y);
+            switch (_state) {
+                case State.Game:
+                    if (_touchedBalls.ContainsKey (fingerID)) {
+                        FallingBall item = _touchedBalls[fingerID];
+                        RefreshTouchedBall (item, x, y);
 
-                RegionTest test = TestBallInEndRegions (item);
-                switch (test) {
-                    default:
-                    case RegionTest.NotInRegion:
-                        break;
-                    case RegionTest.GoodRegion:
-                        HandleGoodRegionEnd (fingerID, item.ball);
-                        break;
-                    case RegionTest.WrongRegion:
-                        HandleWrongRegionEnd (fingerID, item.ball);
-                        break;
-                }
+                        RegionTest test = TestBallInEndRegions (item);
+                        switch (test) {
+                            default:
+                            case RegionTest.NotInRegion:
+                                break;
+                            case RegionTest.GoodRegion:
+                                _touchedBalls.Remove (fingerID);
+                                HandleGoodRegionEnd (item.ball);
+                                break;
+                            case RegionTest.WrongRegion:
+                                HandleWrongRegionEnd (item.ball);
+                                break;
+                        }
+                    }
+                    break;
+                default:
+                    break;
             }
         }
         #endregion
 
         #region Helper methods
+        private void AddNewBalls (LevelDefinition level) {
+            if (_state == State.Game && _lastAddTime > _random.Next (level.minAddTime, level.maxAddTime) / 1000.0f) {
+                int addCount = 1; //_random.Next (1, level.maxAddCount + 1);
+                for (int i = 0; i < addCount; ++i) {
+                    Ball ball = null;
+                    switch (_random.Next (6)) {
+                        default:
+                        case 0: ball = new Ball (Ball.Color.Red); break;
+                        case 1: ball = new Ball (Ball.Color.Green); break;
+                        case 2: ball = new Ball (Ball.Color.Blue); break;
+                        case 3: ball = new Ball (Ball.Color.Yellow); break;
+                        case 4: ball = new Ball (Ball.Color.Magic); break;
+                        case 5: ball = new Ball (Ball.Color.Bomb); break;
+                    }
+
+                    ball.Init ();
+                    ball.Scale = new Vector2D (0.1f, 0.1f);
+
+                    float screenWidth = Game.Instance.ScreenWidth / (float)addCount;
+                    float screenOffset = i * Game.Instance.ScreenWidth / (float)addCount;
+                    float border = ball.TransformedBoundingBox.Width / 2.0f + Game.Instance.ToLocal (20 * 4, 0).X;
+                    float newX = _random.Next ((int)(screenOffset * 1000.0f), (int)((screenOffset + screenWidth - 2.0f * border) * 1000.0f)) / 1000.0f + border;
+
+                    ball.Pos = new Vector2D (newX, ball.TransformedBoundingBox.Height / 2.0f);
+
+                    RigidBody2D body = new RigidBody2D () {
+                        Mesh = ball,
+                        Velocity = new Vector2D (0, level.startVelocityY),
+                        Mass = 1.0f, //1 kg
+                        FindCollision = new RigidBody2D.FindCollisionDelegate (FindCollision)
+                    };
+
+                    _fallingBalls.Add (new FallingBall () {
+                        ball = ball,
+                        body = body
+                    });
+                    _lastAddTime = 0;
+                }
+            }
+        }
+
         private void RefreshTouchedBall (FallingBall item, float x, float y) {
             Vector2D curPos = Game.Instance.ToLocal (x, y);
             if (item.ball.Pos != curPos) {
@@ -301,15 +415,18 @@ namespace ballfall.management {
                 while (item.lastVelocities.Count > 3)
                     item.lastVelocities.RemoveAt (0);
 
-                Vector2D avgVel = Vector2D.Zero;
-                foreach (var vel in item.lastVelocities)
-                    avgVel += vel;
-                avgVel /= (float)item.lastVelocities.Count;
+                float touchDist = (item.ball.Pos - item.touchPosition).Length;
+                if (touchDist > 0.05f) { //Prevent the single touch to speed up the touched ball
+                    Vector2D avgVel = Vector2D.Zero;
+                    foreach (var vel in item.lastVelocities)
+                        avgVel += vel;
+                    avgVel /= (float)item.lastVelocities.Count;
 
-                item.body.Velocity = avgVel;
+                    item.body.Velocity = avgVel;
 
-                if (item.body.Velocity.Length > 3.0f) {
-                    item.body.Velocity = item.body.Velocity.Normalize () * 3.0f;
+                    if (item.body.Velocity.Length > 3.0f) {
+                        item.body.Velocity = item.body.Velocity.Normalize () * 3.0f;
+                    }
                 }
             }
         }
@@ -355,20 +472,53 @@ namespace ballfall.management {
             return RegionTest.NotInRegion;
         }
 
-        private void HandleGoodRegionEnd (int fingerID, Ball ball) {
+        private void HandleGoodRegionEnd (Ball ball) {
             QTEGoodBall qte = new QTEGoodBall (ball);
             qte.Init ();
             qte.Start ();
             _endedBalls.Add (qte);
-            _touchedBalls.Remove (fingerID);
+
+            ++_score;
+            RefreshOverlays (true);
         }
 
-        private void HandleWrongRegionEnd (int fingerID, Ball ball) {
-            //TODO: handle fail of game
+        private void HandleWrongRegionEnd (Ball ball) {
+            //TODO: rossz régió kezelése (fail)
         }
 
         private void HandleBombBlowEnd (Ball ball) {
-            //TODO: bomba robbanas kezelese (fail)
+            QTEExplodeBall qte = new QTEExplodeBall (ball);
+            qte.Init ();
+            qte.Start ();
+            _explodedBalls.Add (qte);
+        }
+
+        private void HandleBallFallFailEnd () {
+            _state = State.FallError;
+
+            foreach (FallingBall item in _fallingBalls)
+                item.ball.Shutdown ();
+            _fallingBalls.Clear ();
+
+            foreach (FallingBall item in _touchedBalls.Values)
+                item.ball.Shutdown ();
+            _touchedBalls.Clear ();
+
+            _fail = new QTEFail ();
+            _fail.Init ();
+            _fail.Start ();
+        }
+
+        private void RefreshOverlays (bool force) {
+            int mins = (int)(_fullTime / 60.0f);
+            int secs = (int)(_fullTime % 60.0f);
+            if (force || mins != _lastMins || secs != _lastSecs) {
+                _lastMins = mins;
+                _lastSecs = secs;
+
+                Game.ContentManager.SetTopLeftStatus ("Level: " + (_currentLevel + 1) + " Time: " + mins.ToString ().PadLeft (2, '0') + ":" + secs.ToString ().PadLeft (2, '0'));
+                Game.ContentManager.SetTopRightStatus ("Score: " + _score);
+            }
         }
         #endregion
     }

@@ -23,6 +23,10 @@ namespace game.management {
         int GetWidth (object image);
 
         int GetHeight (object image);
+
+        void SetTopLeftStatus (string text);
+
+        void SetTopRightStatus (string text);
     }
 
     public interface IUtil {

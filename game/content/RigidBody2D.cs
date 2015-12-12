@@ -23,10 +23,12 @@ namespace game.content {
 
         public FindCollisionDelegate FindCollision { get; set; }
 
+        public RigidBody2D CollideBody { get; set; }
+
         public void Update (float elapsedTime) {
             //Store last pos
             LastPos = Mesh.Pos;
-            Vector2D lastVel = Velocity;
+            CollideBody = null;
 
             //Calculate new position
             Vector2D accel = Force / Mass / PhysicalScale;
@@ -36,11 +38,11 @@ namespace game.content {
 
             //Check collision (and calculate new position)
             if (FindCollision != null) {
-                RigidBody2D coll = FindCollision (this);
-                if (coll != null) {
+                CollideBody = FindCollision (this);
+                if (CollideBody != null) {
                     //Find collision position (circle intersection with velocity direction line)
-                    float radius = Mesh.TransformedBoundingBox.Width / 2.0f + coll.Mesh.TransformedBoundingBox.Width / 2.0f; //Most egyszerusitunk, mert minden mesh kor...
-                    Vector2D[] intersection = Geom.LineCircleIntersection (Velocity.Normalize (), Mesh.Pos, coll.Mesh.Pos, radius);
+                    float radius = Mesh.TransformedBoundingBox.Width / 2.0f + CollideBody.Mesh.TransformedBoundingBox.Width / 2.0f; //Most egyszerusitunk, mert minden mesh kor...
+                    Vector2D[] intersection = Geom.LineCircleIntersection (Velocity.Normalize (), Mesh.Pos, CollideBody.Mesh.Pos, radius);
                     if (intersection != null && intersection.Length > 0) {
                         float len0 = (intersection[0] - LastPos).SquareLength;
                         float len1 = intersection.Length > 1 ? (intersection[1] - LastPos).SquareLength : 0;
@@ -55,7 +57,7 @@ namespace game.content {
                         Mesh.Pos = collisionPos;
 
                         //Calculate new velocity and position after collision (until remaining time)
-                        Vector2D dist = coll.Mesh.Pos - Mesh.Pos;
+                        Vector2D dist = CollideBody.Mesh.Pos - Mesh.Pos;
                         Vector2D norm = dist.Normalize ();
                         Vector2D proj = Velocity.Dot (norm) * norm;
                         Velocity = (2.0f * (Velocity - proj)) - Velocity;

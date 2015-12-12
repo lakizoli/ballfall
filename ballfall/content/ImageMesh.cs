@@ -6,14 +6,19 @@ using System.Linq;
 using System.Text;
 
 namespace ballfall.content {
-    class Background : Mesh2D {
+    class ImageMesh : Mesh2D {
+        private string _asset;
         private int _tex;
         private int[] _vbo;
+
+        public ImageMesh (string asset) {
+            _asset = asset;
+        }
 
         public override void Init () {
             base.Init ();
 
-            _tex = LoadTextureFromAsset ("background.png");
+            _tex = LoadTextureFromAsset (_asset);
             _vbo = NewTexturedVBO (_tex);
         }
 

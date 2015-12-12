@@ -54,6 +54,9 @@ namespace game.content {
                 (rect.RightBottom >= LeftTop && rect.RightBottom <= RightBottom);
         }
 
+        public override string ToString () {
+            return "(LeftTop: " + LeftTop + ", RightBottom: " + RightBottom + ")";
+        }
         #endregion
     }
 }

@@ -43,8 +43,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="content\Background.cs" />
     <Compile Include="content\Ball.cs" />
+    <Compile Include="content\ImageMesh.cs" />
+    <Compile Include="content\QTEExplodeBall.cs" />
+    <Compile Include="content\QTEFail.cs" />
     <Compile Include="content\QTEGoodBall.cs" />
     <Compile Include="content\QTEPulseBall.cs" />
     <Compile Include="management\BallFallGame.cs" />

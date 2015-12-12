@@ -43,6 +43,14 @@ namespace ballfall.android {
             return ((Bitmap)image).Height;
         }
 
+        public void SetTopLeftStatus (string text) {
+            ((MainActivity)_context).SetTopLeftStatus (text);
+        }
+
+        public void SetTopRightStatus (string text) {
+            ((MainActivity)_context).SetTopRightStatus (text);
+        }
+
         #endregion
     }
 }

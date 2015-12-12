@@ -127,4 +127,20 @@ namespace game.content {
                 _value = _startValue + _timeOffset / _timeFrame * (_endValue - _startValue);
         }
     }
+
+    public class FrameAnimation : Animation {
+        private int _frame;
+        private float _frameTime;
+
+        public int Frame { get { return _frame; } }
+
+        public FrameAnimation (float frameTime) {
+            _frameTime = frameTime;
+        }
+
+        protected override void OnUpdate (float elapsedTime) {
+            base.OnUpdate (elapsedTime);
+            _frame = (int)(_timeOffset / _frameTime);
+        }
+    }
 }
