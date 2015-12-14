@@ -6,27 +6,27 @@ using System.Linq;
 using System.Text;
 
 namespace ballfall.content {
-    class QTEFail : QuickTimeEvent {
-        private ImageMesh _failText;
+    class QTEGrowText : QuickTimeEvent {
+        private ImageMesh _test;
         private LinearAnimation _scale;
 
         public bool IsEnded { get { return _scale.Value >= 0.29f; } }
 
-        public QTEFail () {
-            _failText = new ImageMesh ("fail.png");
-            _scale = new LinearAnimation (0.01f, 0.3f, 0.1f);
+        public QTEGrowText (string asset, float timeFrame) {
+            _test = new ImageMesh (asset);
+            _scale = new LinearAnimation (0.01f, 0.3f, timeFrame);
         }
 
         public override void Init () {
             base.Init ();
-            _failText.Init ();
-            _failText.Scale = new Vector2D (0.01f, 0.01f);
-            _failText.Pos = new Vector2D (Game.Instance.ScreenWidth / 2.0f, Game.Instance.ScreenHeight / 2.0f);
+            _test.Init ();
+            _test.Scale = new Vector2D (0.01f, 0.01f);
+            _test.Pos = new Vector2D (Game.Instance.ScreenWidth / 2.0f, Game.Instance.ScreenHeight / 2.0f);
         }
 
         public override void Shutdown () {
             base.Shutdown ();
-            _failText.Shutdown ();
+            _test.Shutdown ();
         }
 
         protected override void OnStart () {
@@ -42,12 +42,12 @@ namespace ballfall.content {
         protected override void OnUpdate (float elapsedTime) {
             base.OnUpdate (elapsedTime);
             _scale.Update (elapsedTime);
-            _failText.Scale = new Vector2D (_scale.Value, _scale.Value);
+            _test.Scale = new Vector2D (_scale.Value, _scale.Value);
         }
 
         protected override void OnRender () {
             base.OnRender ();
-            _failText.Render ();
+            _test.Render ();
         }
     }
 }

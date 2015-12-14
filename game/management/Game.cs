@@ -24,6 +24,10 @@ namespace game.management {
 
         int GetHeight (object image);
 
+        void SetTopLeftStyle (float size, float red, float green, float blue, float alpha);
+
+        void SetTopRightStyle (float size, float red, float green, float blue, float alpha);
+
         void SetTopLeftStatus (string text);
 
         void SetTopRightStatus (string text);

@@ -35,6 +35,7 @@ namespace ballfall.management {
         }
 
         enum State {
+            PreGame,
             Game,
             FallError,
         }
@@ -56,11 +57,16 @@ namespace ballfall.management {
         Rect2D _redRegion;
         Rect2D _blueRegion;
 
+        QTEGrowText _ready;
+        QTEGrowText _steady;
+        QTEGrowText _go;
+
         List<FallingBall> _fallingBalls;
         List<QTEGoodBall> _endedBalls;
+        List<QTEGoodBall> _wrongBalls;
         List<QTEExplodeBall> _explodedBalls;
         ImageMesh _background;
-        QTEFail _fail;
+        QTEGrowText _fail;
         State _state;
 
         Dictionary<int, FallingBall> _touchedBalls;
@@ -70,7 +76,7 @@ namespace ballfall.management {
         }
 
         public override void Init (int width, int height) {
-            _state = State.Game;
+            _state = State.PreGame;
 
             _levels = new List<LevelDefinition> ();
             _levels.Add (new LevelDefinition () { index = 0, endTime = 30, minAddTime = 1000, maxAddTime = 2000, startVelocityY = 0.0f, maxAddCount = 1 });
@@ -92,8 +98,16 @@ namespace ballfall.management {
             _redRegion = new Rect2D (Game.Instance.ToLocal (width - 20 * 4, 65 * 4), Game.Instance.ToLocal (width, 265 * 4));
             _blueRegion = new Rect2D (Game.Instance.ToLocal (width - 20 * 4, 265 * 4), Game.Instance.ToLocal (width, 480 * 4));
 
+            _ready = new QTEGrowText ("ready.png", 0.5f);
+            _ready.Init ();
+            _ready.Start ();
+
+            _steady = null;
+            _go = null;
+
             _fallingBalls = new List<FallingBall> ();
             _endedBalls = new List<QTEGoodBall> ();
+            _wrongBalls = new List<QTEGoodBall> ();
             _explodedBalls = new List<QTEExplodeBall> ();
 
             _background = new ImageMesh ("background.png");
@@ -105,11 +119,29 @@ namespace ballfall.management {
 
             _touchedBalls = new Dictionary<int, FallingBall> ();
 
+            Game.ContentManager.SetTopLeftStyle (20, 1, 0, 0, 1);
+            Game.ContentManager.SetTopRightStyle (20, 1, 0, 0, 1);
+
             RefreshOverlays (true);
         }
 
         public override void Shutdown () {
             _touchedBalls = null;
+
+            if (_go != null) {
+                _go.Stop ();
+                _go.Shutdown ();
+            }
+
+            if (_steady != null) {
+                _steady.Stop ();
+                _steady.Shutdown ();
+            }
+
+            if (_ready != null) {
+                _ready.Stop ();
+                _ready.Shutdown ();
+            }
 
             if (_fail != null) {
                 _fail.Stop ();
@@ -130,6 +162,12 @@ namespace ballfall.management {
             }
             _endedBalls = null;
 
+            foreach (QTEGoodBall item in _wrongBalls) {
+                item.Stop ();
+                item.Shutdown ();
+            }
+            _wrongBalls = null;
+
             foreach (FallingBall item in _fallingBalls)
                 item.ball.Shutdown ();
             _fallingBalls = null;
@@ -146,6 +184,55 @@ namespace ballfall.management {
             _fullTime += elapsedTime;
             _lastAddTime += elapsedTime;
 
+            //Handle pre game effects
+            if (_state == State.PreGame) {
+                if (_ready != null) {
+                    _ready.Update (elapsedTime);
+                    if (_ready.IsEnded) {
+                        _fullTime = 0;
+                        _lastAddTime = 0;
+
+                        _ready.Shutdown ();
+                        _ready = null;
+
+                        _steady = new QTEGrowText ("steady.png", 0.5f);
+                        _steady.Init ();
+                        _steady.Start ();
+                    }
+                }
+
+                if (_steady != null) {
+                    _steady.Update (elapsedTime);
+                    if (_steady.IsEnded) {
+                        _fullTime = 0;
+                        _lastAddTime = 0;
+
+                        _steady.Shutdown ();
+                        _steady = null;
+
+                        _go = new QTEGrowText ("go.png", 0.5f);
+                        _go.Init ();
+                        _go.Start ();
+                    }
+                }
+
+                if (_go != null) {
+                    _go.Update (elapsedTime);
+                    if (_go.IsEnded) {
+                        _fullTime = 0;
+                        _lastAddTime = 0;
+
+                        _go.Shutdown ();
+                        _go = null;
+
+                        _state = State.Game;
+                    }
+                }
+
+                return;
+            }
+
+            //Refresh overlay texts
             RefreshOverlays (false);
 
             //Pick next level
@@ -195,13 +282,20 @@ namespace ballfall.management {
                         continue;
                 }
 
+                //Test fall off from screen
                 float yTest = item.ball.Pos.Y - item.ball.BoundingBox.Height * item.ball.Scale.Y / 2.0f;
                 if (yTest < 0 || yTest > Game.Instance.ScreenHeight) { //When ball has fallen
                     if (item.ball.Type == Ball.Color.Bomb) {
                         _fallingBalls.RemoveAt (i);
                         item.ball.Shutdown ();
                     } else { //Fail
-                        HandleBallFallFailEnd ();
+                        float xTest = item.ball.Pos.X - item.ball.BoundingBox.Width * item.ball.Scale.X / 2.0f;
+                        if (xTest >= 0 && xTest <= Game.Instance.ScreenWidth)
+                            HandleBallFallFailEnd ();
+                        else { //Ball has fallen, but not fail (hack)
+                            _fallingBalls.RemoveAt (i);
+                            item.ball.Shutdown ();
+                        }
                         break;
                     }
                 }
@@ -213,7 +307,21 @@ namespace ballfall.management {
                 item.Update (elapsedTime);
                 if (item.IsEnded) {
                     _endedBalls.RemoveAt (i);
+                    item.Stop ();
                     item.Shutdown ();
+                }
+            }
+
+            //Calculate wrong ball animation
+            for (int i = _wrongBalls.Count - 1; i >= 0; --i) {
+                QTEGoodBall item = _wrongBalls[i];
+                item.Update (elapsedTime);
+                if (item.IsEnded) {
+                    _wrongBalls.RemoveAt (i);
+                    item.Stop ();
+                    item.Shutdown ();
+
+                    HandleBallFallFailEnd ();
                 }
             }
 
@@ -223,7 +331,10 @@ namespace ballfall.management {
                 item.Update (elapsedTime);
                 if (item.IsEnded) {
                     _explodedBalls.RemoveAt (i);
+                    item.Stop ();
                     item.Shutdown ();
+
+                    HandleBallFallFailEnd ();
                 }
             }
 
@@ -254,9 +365,23 @@ namespace ballfall.management {
             foreach (QTEGoodBall item in _endedBalls)
                 item.Render ();
 
+            //Draw wrong balls
+            foreach (QTEGoodBall item in _wrongBalls)
+                item.Render ();
+
             //Draw exploded balls
             foreach (QTEExplodeBall item in _explodedBalls)
                 item.Render ();
+
+            //QTE texts
+            if (_ready != null)
+                _ready.Render ();
+
+            if (_steady != null)
+                _steady.Render ();
+
+            if (_go != null)
+                _go.Render ();
 
             if (_fail != null)
                 _fail.Render ();
@@ -483,7 +608,10 @@ namespace ballfall.management {
         }
 
         private void HandleWrongRegionEnd (Ball ball) {
-            //TODO: rossz régió kezelése (fail)
+            QTEGoodBall qte = new QTEGoodBall (ball);
+            qte.Init ();
+            qte.Start ();
+            _wrongBalls.Add (qte);
         }
 
         private void HandleBombBlowEnd (Ball ball) {
@@ -504,7 +632,7 @@ namespace ballfall.management {
                 item.ball.Shutdown ();
             _touchedBalls.Clear ();
 
-            _fail = new QTEFail ();
+            _fail = new QTEGrowText ("fail.png", 0.1f);
             _fail.Init ();
             _fail.Start ();
         }

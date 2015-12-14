@@ -72,6 +72,26 @@ namespace ballfall.android {
             _view.Resume ();
         }
 
+        public void SetTopLeftStyle (float size, float red, float green, float blue, float alpha) {
+            _textTopLeft.SetTextSize (Android.Util.ComplexUnitType.Dip, size);
+
+            byte redByte = (byte)(255.0 * red);
+            byte greenByte = (byte)(255.0 * green);
+            byte blueByte = (byte)(255.0 * blue);
+            byte alphaByte = (byte)(255.0 * alpha);
+            _textTopLeft.SetTextColor (new Color (redByte, greenByte, blueByte, alphaByte));
+        }
+
+        public void SetTopRightStyle (float size, float red, float green, float blue, float alpha) {
+            _textTopRight.SetTextSize (Android.Util.ComplexUnitType.Dip, size);
+
+            byte redByte = (byte)(255.0 * red);
+            byte greenByte = (byte)(255.0 * green);
+            byte blueByte = (byte)(255.0 * blue);
+            byte alphaByte = (byte)(255.0 * alpha);
+            _textTopRight.SetTextColor (new Color (redByte, greenByte, blueByte, alphaByte));
+        }
+
         public void SetTopLeftStatus (string text) {
             _textTopLeft.Text = text;
         }

@@ -44,11 +44,15 @@ namespace ballfall.content {
         }
 
         public override void Shutdown () {
-            GL.DeleteBuffers (_vbo.Length, _vbo);
-            _vbo = null;
+            if (_vbo != null) {
+                GL.DeleteBuffers (_vbo.Length, _vbo);
+                _vbo = null;
+            }
 
-            GL.DeleteTextures (1, ref _tex);
-            _tex = 0;
+            if (_tex > 0) {
+                GL.DeleteTextures (1, ref _tex);
+                _tex = 0;
+            }
 
             base.Shutdown ();
         }
